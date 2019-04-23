@@ -9,6 +9,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -21,13 +22,28 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener {
-    final static int PERMISSION_ALL =1;
+import org.altbeacon.beacon.BeaconConsumer;
+import org.altbeacon.beacon.BeaconManager;
+import org.altbeacon.beacon.BeaconParser;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.example.svoja.ubiqmapper.BeaconRangeFindingKt.startBeaconRangeFinderService;
+
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener, BeaconConsumer {
+    final static int PERMISSION_ALL = 1;
     final static String[] PERMISSIONS = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
     private GoogleMap mMap;
     MarkerOptions mo;
     Marker marker;
     LocationManager locationManager;
+
+    private BeaconManager beaconManager;
+    private List<JSONObject> beaconList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,16 +52,49 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        mo = new MarkerOptions().position(new LatLng(0,1)).title("Current location");
-        if (Build.VERSION.SDK_INT >= 23 && !isPermissionGranted()){
+        mo = new MarkerOptions().position(new LatLng(0, 1)).title("Current location");
+        if (Build.VERSION.SDK_INT >= 23 && !isPermissionGranted()) {
             requestPermissions(PERMISSIONS, PERMISSION_ALL);
-        }else requestLocation();
-        if(!isLocationEnabled()){
+        } else requestLocation();
+        if (!isLocationEnabled()) {
             showAlert(1);
         }
+
+
+        beaconManager = BeaconManager.getInstanceForApplication(this);
+        /*
+        beaconManager.foregroundScanPeriod = 5100
+        beaconManager.foregroundBetweenScanPeriod = 2000
+        beaconManager.backgroundScanPeriod = 5100
+        beaconManager.backgroundBetweenScanPeriod = 2000
+        */
+        //Parse IBeacon structure
+        beaconManager.getBeaconParsers().add(new BeaconParser().setBeaconLayout("m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24"));
+        beaconManager.bind(this);
+        try {
+            JSONArray arr = new JSONArray(Shame.beacons);
+            for (int i = 0; i < arr.length(); i++) {
+                beaconList.add(arr.getJSONObject(i));
+            }
+        } catch (JSONException e) {
+            Log.d("JSON parsing", e.getMessage());
+        }
+
+        startBeaconRangeFinderService(beaconManager,beaconList);
     }
 
-    private boolean isLocationEnabled(){
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        beaconManager.unbind(this);
+    }
+
+    @Override
+    public void onBeaconServiceConnect() {
+        Log.e("beacontest", "Service connected");
+    }
+
+    private boolean isLocationEnabled() {
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
                 locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
     }
@@ -56,13 +105,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @TargetApi(Build.VERSION_CODES.M)
     @RequiresApi(api = Build.VERSION_CODES.M)
-    private boolean isPermissionGranted(){
+    private boolean isPermissionGranted() {
         if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED || checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED){
+                == PackageManager.PERMISSION_GRANTED) {
             Log.v("myLog", "Permission is granted");
             return true;
-        } else{
+        } else {
             Log.v("myLog", "Permission not granted.");
             return false;
         }
@@ -110,11 +159,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onProviderDisabled(String provider) {
 
     }
-    private void requestLocation(){
+
+    private void requestLocation() {
         Criteria criteria = new Criteria();
         criteria.setAccuracy(Criteria.ACCURACY_FINE);
         criteria.setPowerRequirement(Criteria.POWER_HIGH);
         String provider = locationManager.getBestProvider(criteria, true);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
         locationManager.requestLocationUpdates(provider, 10000, 10, this);
 
     }
