@@ -3,8 +3,7 @@ package com.example.svoja.ubiqmapper
 object Shame
 {
     @kotlin.jvm.JvmField
-    val beacons  = "{\n" +
-            "  \"beacons\": [\n" +
+    val beacons  = "[\n" +
             "    {\n" +
             "      \"alias\":\"sx8Z\",\n" +
             "      \"UUID\": \"f7826da6-4fa2-4e98-8024-bc5b71e0893e\",\n" +
@@ -402,6 +401,5 @@ object Shame
             "      \"level\": \"2 (1.sal)\",\n" +
             "      \"roomName\": \"U180\"\n" +
             "    }\n" +
-            "  ]\n" +
-            "}"
+            "  ]"
 }
