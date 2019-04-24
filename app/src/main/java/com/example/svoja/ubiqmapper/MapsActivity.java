@@ -13,6 +13,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -80,7 +81,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Log.d("JSON parsing", e.getMessage());
         }
 
-        startBeaconRangeFinderService(beaconManager,beaconList);
+        startBeaconRangeFinderService(beaconManager,beaconList, this );
     }
 
     @Override
@@ -141,8 +142,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onLocationChanged(Location location) {
         LatLng myCoordinates = new LatLng(location.getLatitude(), location.getLongitude());
-        marker.setPosition(myCoordinates);
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(myCoordinates));
+
+        if (marker != null)
+            marker.setPosition(myCoordinates);
+        //mMap.moveCamera(CameraUpdateFactory.newLatLng(myCoordinates));
     }
 
     @Override
