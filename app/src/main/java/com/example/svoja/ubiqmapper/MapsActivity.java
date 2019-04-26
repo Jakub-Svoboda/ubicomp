@@ -35,6 +35,24 @@ import java.util.List;
 
 import static com.example.svoja.ubiqmapper.BeaconRangeFindingKt.startBeaconRangeFinderService;
 
+class LocInfo
+{
+    public LocInfo(LatLng loc, double accuracy) {
+        this(loc,accuracy,"","");
+    }
+    public LocInfo(LatLng loc, double accuracy, String alias, String room) {
+        this.loc = loc;
+        this.accuracy = accuracy;
+        this.alias = alias;
+        this.room = room;
+    }
+
+    LatLng loc;
+    double accuracy;
+    String alias;
+    String room;
+}
+
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener, BeaconConsumer {
     final static int PERMISSION_ALL = 1;
     final static String[] PERMISSIONS = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
@@ -44,21 +62,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     LocationManager locationManager;
 
     private BeaconManager beaconManager;
-    private List<JSONObject> beaconList = new ArrayList<>();
+
+    LocInfo beaconInfo;
+    LocInfo gpsInfo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
+        if (mapFragment != null) {
+            mapFragment.getMapAsync(this);
+        }
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         mo = new MarkerOptions().position(new LatLng(0, 1)).title("Current location");
         if (Build.VERSION.SDK_INT >= 23 && !isPermissionGranted()) {
             requestPermissions(PERMISSIONS, PERMISSION_ALL);
         } else requestLocation();
         if (!isLocationEnabled()) {
-            showAlert(1);
+            showAlert("Location is not enabled!");
         }
 
 
@@ -72,16 +94,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //Parse IBeacon structure
         beaconManager.getBeaconParsers().add(new BeaconParser().setBeaconLayout("m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24"));
         beaconManager.bind(this);
-        try {
-            JSONArray arr = new JSONArray(Shame.beacons);
-            for (int i = 0; i < arr.length(); i++) {
-                beaconList.add(arr.getJSONObject(i));
-            }
-        } catch (JSONException e) {
-            Log.d("JSON parsing", e.getMessage());
-        }
-
-        startBeaconRangeFinderService(beaconManager,beaconList, this );
     }
 
     @Override
@@ -92,7 +104,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onBeaconServiceConnect() {
-        Log.e("beacontest", "Service connected");
+
+        startBeaconRangeFinderService(beaconManager, this );
     }
 
     private boolean isLocationEnabled() {
@@ -100,8 +113,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
     }
 
-    private void showAlert(int i) {
-
+    private void showAlert(String text) {
+        Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
     }
 
     @TargetApi(Build.VERSION_CODES.M)
@@ -141,12 +154,48 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onLocationChanged(Location location) {
+        if (mMap == null)
+        {
+            return;
+        }
+
         LatLng myCoordinates = new LatLng(location.getLatitude(), location.getLongitude());
 
-        if (marker != null)
-            marker.setPosition(myCoordinates);
-        //mMap.moveCamera(CameraUpdateFactory.newLatLng(myCoordinates));
+        gpsInfo = new LocInfo(myCoordinates, location.getAccuracy());
+        updatePosition();
+
     }
+
+    public void updatePosition()
+    {
+        LatLng position;
+        String title = "";
+
+        if (gpsInfo == null && beaconInfo == null)
+        {
+            return;
+        }
+        if (gpsInfo != null && beaconInfo != null)
+        {
+            position = gpsInfo.accuracy < beaconInfo.accuracy ? gpsInfo.loc : beaconInfo.loc;
+            title = gpsInfo.accuracy < beaconInfo.accuracy ? "GPS" : beaconInfo.room;
+        }
+        else if (gpsInfo == null)
+        {
+            position = beaconInfo.loc;
+            title = beaconInfo.room;
+        }
+        else
+        {
+            position = gpsInfo.loc;
+            title = "GPS";
+        }
+
+        marker.setPosition(position);
+        marker.setTitle(title);
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(position));
+    }
+
 
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {

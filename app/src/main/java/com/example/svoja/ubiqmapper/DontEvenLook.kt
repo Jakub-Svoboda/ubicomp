@@ -1,7 +1,14 @@
 package com.example.svoja.ubiqmapper
 
+data class BeaconInfo(val minor: String, val major: String, val lat: Double, val lon: Double, val alias: String, val room: String)
+
 object Shame
 {
+    var beacons = listOf(
+            BeaconInfo("a","b",1.0,1.0, "alias","room")
+
+    )
+    /*
     @kotlin.jvm.JvmField
     val beacons  = "[\n" +
             "    {\n" +
@@ -402,4 +409,5 @@ object Shame
             "      \"roomName\": \"U180\"\n" +
             "    }\n" +
             "  ]"
+            */
 }

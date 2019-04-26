@@ -4,16 +4,18 @@ import android.content.Context
 import android.os.RemoteException
 import android.util.Log
 import android.widget.Toast
+import com.google.android.gms.maps.model.LatLng
 import org.altbeacon.beacon.Beacon
 import org.altbeacon.beacon.BeaconManager
 import org.altbeacon.beacon.Identifier
 import org.altbeacon.beacon.Region
 import org.json.JSONObject
 import java.util.*
+import kotlin.math.abs
 
 val UUID = "f7826da6-4fa2-4e98-8024-bc5b71e0893e"
 
-fun startBeaconRangeFinderService(beaconManager: BeaconManager, beaconList: List<JSONObject>, context: Context) {
+fun startBeaconRangeFinderService(beaconManager: BeaconManager, context: MapsActivity) {
     beaconManager.addRangeNotifier { beacons: Collection<Beacon>, range: Region ->
         var closest: Beacon? = null
         beacons.forEach {
@@ -23,12 +25,27 @@ fun startBeaconRangeFinderService(beaconManager: BeaconManager, beaconList: List
         }
 
         if (closest != null) {
-            val json = beaconList.find { it.getString("major").equals(closest!!.id2) && it.getString("minor").equals(closest!!.id3) }
+            val beaconInfo = Shame.beacons.find { it.major == closest!!.id2.toString()  && it.minor == closest!!.id3.toString() }
 
+            if (beaconInfo != null)
+            {
+                val newInfo = LocInfo(LatLng(beaconInfo.lat, beaconInfo.lon), closest!!.distance, beaconInfo.alias, beaconInfo.room)
+                if (context.beaconInfo == null || context.beaconInfo.alias != newInfo.alias || abs(context.beaconInfo.accuracy - newInfo.accuracy) > 1.0)
+                {
+                    context.beaconInfo = newInfo;
+                    context.updatePosition()
+                }
+            }
+            else if (context.beaconInfo != null){
+                context.beaconInfo = null;
+                context.updatePosition()
+            }
 
-            Toast.makeText(context, beaconList.toString(), Toast.LENGTH_LONG)
-            //TODO let app know to switch from gps
-            Log.d("beacontest", json?.getString("room") ?: "Not found - "+ closest!!.toString())
+            Log.d("beacontest", beaconInfo?.alias ?: "Not found - "+ closest!!.toString())
+        }
+        else if (context.beaconInfo != null){
+            context.beaconInfo = null;
+            context.updatePosition()
         }
     }
     try {
