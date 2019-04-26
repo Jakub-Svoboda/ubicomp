@@ -35,23 +35,6 @@ import java.util.List;
 
 import static com.example.svoja.ubiqmapper.BeaconRangeFindingKt.startBeaconRangeFinderService;
 
-class LocInfo
-{
-    public LocInfo(LatLng loc, double accuracy) {
-        this(loc,accuracy,"","");
-    }
-    public LocInfo(LatLng loc, double accuracy, String alias, String room) {
-        this.loc = loc;
-        this.accuracy = accuracy;
-        this.alias = alias;
-        this.room = room;
-    }
-
-    LatLng loc;
-    double accuracy;
-    String alias;
-    String room;
-}
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener, BeaconConsumer {
     final static int PERMISSION_ALL = 1;
@@ -177,17 +160,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         if (gpsInfo != null && beaconInfo != null)
         {
-            position = gpsInfo.accuracy < beaconInfo.accuracy ? gpsInfo.loc : beaconInfo.loc;
-            title = gpsInfo.accuracy < beaconInfo.accuracy ? "GPS" : beaconInfo.room;
+            position = gpsInfo.getAccuracy() < beaconInfo.getAccuracy() ? gpsInfo.getLoc() : beaconInfo.getLoc();
+            title = gpsInfo.getAccuracy() < beaconInfo.getAccuracy() ? "GPS" : beaconInfo.getRoom();
         }
         else if (gpsInfo == null)
         {
-            position = beaconInfo.loc;
-            title = beaconInfo.room;
+            position = beaconInfo.getLoc();
+            title = beaconInfo.getRoom();
         }
         else
         {
-            position = gpsInfo.loc;
+            position = gpsInfo.getLoc();
             title = "GPS";
         }
 
