@@ -39,7 +39,7 @@ import static com.example.svoja.ubiqmapper.BeaconRangeFindingKt.startBeaconRange
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener, BeaconConsumer {
     final static int PERMISSION_ALL = 1;
     final static String[] PERMISSIONS = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
-    private GoogleMap mMap;
+    private GoogleMap mMap = null;
     MarkerOptions mo;
     Marker marker;
     LocationManager locationManager;
@@ -177,6 +177,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         marker.setPosition(position);
         marker.setTitle(title);
         mMap.moveCamera(CameraUpdateFactory.newLatLng(position));
+        Log.d("PositionUpdate","GPS acc: "+(gpsInfo != null ? gpsInfo.getAccuracy() : "null")+ " Bea acc: "+(beaconInfo != null ? beaconInfo.getAccuracy() : "null"));
     }
 
 
